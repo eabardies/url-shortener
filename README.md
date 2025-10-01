@@ -3,7 +3,7 @@
 A simple **URL Shortener API** built with **Spring Boot**.  
 It allows you to shorten long URLs and redirect users to the original URL.
 
-This project supports multiple storage backends: **In-Memory** (default).
+This project supports **In-Memory** storage, and is open for extension to other storage implementation.
 
 ---
 
