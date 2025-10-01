@@ -1,7 +1,7 @@
 package com.ebards.urlshortener.service;
 
 import com.ebards.urlshortener.model.UrlMapping;
-import com.ebards.urlshortener.repository.RedisUrlRepository;
+import com.ebards.urlshortener.repository.InMemoryUrlRepository;
 import com.ebards.urlshortener.repository.UrlRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ public class InMemoryUrlShortenerServiceTest {
 
     @BeforeEach
     void setUp(){
-        urlRepository = mock(RedisUrlRepository.class);
+        urlRepository = mock(InMemoryUrlRepository.class);
         inMemoryUrlShortenerService = new InMemoryUrlShortenerService(urlRepository);
     }
 
