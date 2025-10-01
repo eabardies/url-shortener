@@ -73,4 +73,28 @@ class UrlShortenerControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("Code not found"));
     }
+
+    @Test
+    void testGetInfo_success() throws Exception {
+        String code = "abc123";
+        String originalUrl = "https://example.com";
+
+        Mockito.when(urlShortenerService.getOriginalUrl(code)).thenReturn(originalUrl);
+
+        mockMvc.perform(get("/api/info/{code}", code))
+                .andExpect(status().isOk())
+                .andExpect(content().string(originalUrl));
+    }
+
+    @Test
+    void testGetInfo_invalidCode() throws Exception {
+        String code = "abc123";
+
+        Mockito.when(urlShortenerService.getOriginalUrl(code))
+                .thenThrow(new IllegalArgumentException("Code not found"));
+
+        mockMvc.perform(get("/api/info/{code}", code))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Code not found"));
+    }
 }

@@ -13,8 +13,10 @@ import java.security.SecureRandom;
 @Primary
 public class InMemoryUrlShortenerService implements UrlShortenerService {
 
-    @Value("${app.code-length:5}")
+    @Value("${app.code-length}")
     private int codeLength;
+    @Value("${app.shortener.base-url}")
+    private String baseUrl;
     private final UrlRepository urlRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -29,7 +31,8 @@ public class InMemoryUrlShortenerService implements UrlShortenerService {
         }
         String code = generateCode();
         urlRepository.save(new UrlMapping(code, originalUrl));
-        return "https://short.ly/" + code;
+        baseUrl = baseUrl == null ? "https://short.ly/" : baseUrl;
+        return baseUrl + code;
     }
 
     @Override

@@ -35,13 +35,30 @@ public class UrlShortenerController {
         log.info("GET /api/ called with code: {}", code);
         try {
             String originalUrl = urlShortenerService.getOriginalUrl(code);
-            log.info("Original URL found {}", originalUrl);
+            log.info("Redirecting to URL {}", originalUrl);
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header("Location", originalUrl)
                     .build();
         } catch (IllegalArgumentException e) {
-            log.error("Original URL with code {} does not exist.", code);
+            logCodeError(code);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
+
+    @GetMapping("info/{code}")
+    public ResponseEntity<?> getInfo(@PathVariable String code) {
+        log.info("GET /api/info/{} called", code);
+        try {
+            String originalUrl = urlShortenerService.getOriginalUrl(code);
+            log.info("Original URL found {}", originalUrl);
+            return ResponseEntity.ok(originalUrl);
+        } catch (IllegalArgumentException e) {
+            logCodeError(code);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    private static void logCodeError(String code) {
+        log.error("Code {} does not exist.", code);
     }
 }
