@@ -17,6 +17,7 @@ This project supports **In-Memory** storage, and is open for extension to other 
 Currently, **In-Memory (HashMap)** storage and InMemoryUrlShortenerService are implemented. 
   - Feel free to add new storage and swap out accordingly.
 - Logging using Lombok's slf4j
+- Unit tests included
 
 ---
 
@@ -24,7 +25,7 @@ Currently, **In-Memory (HashMap)** storage and InMemoryUrlShortenerService are i
 
 - Java 17
 - Spring Boot
-- JUnit 5 (unit & integration tests)
+- JUnit 5 + Mockito
 - Maven
 - Lombok
 
@@ -47,31 +48,36 @@ Follow these steps to run the URL Shortener API on your local machine.
   ```bash
   java -version
   ```
+- Verify if **Maven** is installed by running the command:
+  ```bash
+  mvn -version
+  ```
 ### 2. Cloning the repository
   ```bash
     git clone https://github.com/eabardies/url-shortener.git
     cd url-shortener
   ```  
-### 3. Once you have the source code and want to build the JAR:
-  - Output: target/url-shortener-0.0.1-SNAPSHOT.jar
-    ```bash
-    mvn clean package
-    ```
-### 4. Run the application: 
-- Output: target/url-shortener-0.0.1-SNAPSHOT.jar
+### 3. Build and run
   ```bash
-  java -jar target/url-shortener-0.0.1-SNAPSHOT.jar
+    mvn spring-boot:run
   ```
-### 5. Testing the application:
-  - You may use Postman or Curl. The API endpoints are the following:
+
+### API Endpoints
+  - POST /api/shorten: Shorten a URL, provide the original URL in the request body
+  - GET  /api/{code}: Redirect to original URL
+  - GET  /api/info/{code}: Get the original URL
     
-    - Shorten URL: (POST) http://localhost:8080/api/shorten
-    
-          POST http://localhost:8080/api/shorten
-          Body: "https://www.originenergy.com.au/electricity-gas/plans.html"
-    - Redirect to Original URL: (GET) http://localhost:8080/{code}
-      
-          GET http://localhost:8080/api/{code}
+## Configuration
 
+The base URL for shortened links is configurable in `application.yaml`:
 
+```yaml
+app:
+  shortener:
+    base-url: http://short.ly/
+```
 
+### Assumptions and notes
+- In-memory store (HashMap) is used and data is lost on restart
+- Base URL (https://short.ly) is hardcoded but can be externalized via application.yaml
+- Codes are unique, random, and non-sequential using Base62 encoding.
