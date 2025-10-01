@@ -3,3 +3,5 @@ server:
 
 app:
   code-length: 7
+  shortener:
+    base-url: https://short.ly/
