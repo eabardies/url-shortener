@@ -1,7 +1,6 @@
 package com.ebards.urlshortener.controller;
 
 import com.ebards.urlshortener.service.UrlShortenerService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
