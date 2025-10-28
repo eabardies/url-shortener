@@ -8,4 +8,5 @@ import lombok.Data;
 public class UrlMapping {
     private String code;
     private String originalUrl;
+    private String shortenedUrl;
 }

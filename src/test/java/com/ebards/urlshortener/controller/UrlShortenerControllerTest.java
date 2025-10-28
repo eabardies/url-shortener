@@ -1,6 +1,11 @@
 package com.ebards.urlshortener.controller;
 
+import com.ebards.urlshortener.dtos.OriginalUrlResponse;
+import com.ebards.urlshortener.dtos.ShortenUrlRequest;
+import com.ebards.urlshortener.exceptions.UrlNotFoundException;
+import com.ebards.urlshortener.model.UrlMapping;
 import com.ebards.urlshortener.service.UrlShortenerService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +14,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -20,81 +28,100 @@ class UrlShortenerControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockitoBean
     private UrlShortenerService urlShortenerService;
 
     @Test
-    void testShortenUrl_success() throws Exception {
-        String originalUrl = "https://example.com";
-        String shortUrl = "https://short.ly/abc123";
+    void shortenUrl_validRequest_returnsOkAndBody() throws Exception {
+        ShortenUrlRequest request = new ShortenUrlRequest();
+        request.setUrl("https://example.com");
 
-        Mockito.when(urlShortenerService.shortenUrl(anyString())).thenReturn(shortUrl);
+        UrlMapping returned = new UrlMapping("abc123", request.getUrl(), "https://short.ly/abc123");
 
-        mockMvc.perform(post("/api/shorten")
+        when(urlShortenerService.shortenUrl(any(ShortenUrlRequest.class))).thenReturn(returned);
+
+        mockMvc.perform(post("/api")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("\"" + originalUrl + "\""))
+                        .content(objectMapper.writeValueAsString(request))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string(shortUrl));
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("abc123"))
+                .andExpect(jsonPath("$.originalUrl").value("https://example.com"))
+                .andExpect(jsonPath("$.shortenedUrl").value("https://short.ly/abc123"));
+
+        verify(urlShortenerService).shortenUrl(any(ShortenUrlRequest.class));
     }
 
     @Test
-    void testShortenUrl_invalidUrl() throws Exception {
-        String originalUrl = "invalid-url";
-        Mockito.when(urlShortenerService.shortenUrl(anyString()))
-                .thenThrow(new IllegalArgumentException("Invalid URL"));
+    void shortenUrl_invalidRequest_returnsBadRequest() throws Exception {
+        ShortenUrlRequest invalid = new ShortenUrlRequest();
+        invalid.setUrl("not-a-valid-url");
 
-        mockMvc.perform(post("/api/shorten")
+        mockMvc.perform(post("/api")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("\"" + originalUrl + "\""))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Invalid URL"));
+                        .content(objectMapper.writeValueAsString(invalid))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(urlShortenerService, org.mockito.Mockito.never()).shortenUrl(any());
     }
 
     @Test
-    void testRedirect_success() throws Exception {
+    void redirect_existingCode_returns302WithLocationHeader() throws Exception {
         String code = "abc123";
-        String originalUrl = "https://example.com";
+        String originalUrl = "https://example.com/page";
 
-        Mockito.when(urlShortenerService.getOriginalUrl(code)).thenReturn(originalUrl);
+        when(urlShortenerService.getOriginalUrl(eq(code))).thenReturn(originalUrl);
 
-        mockMvc.perform(get("/api/{code}", code))
-                .andExpect(status().isFound())
+        mockMvc.perform(get("/api/" + code))
+                .andExpect(status().isFound()) // 302
                 .andExpect(header().string("Location", originalUrl));
+
+        verify(urlShortenerService).getOriginalUrl(eq(code));
     }
 
     @Test
-    void testRedirect_notFound() throws Exception {
-        String code = "xyz999";
+    void redirect_nonExistingCode_serviceThrowsNotFound_returns404() throws Exception {
+        String code = "doesnotexist";
 
-        Mockito.when(urlShortenerService.getOriginalUrl(code))
-                .thenThrow(new IllegalArgumentException("Code not found"));
+        when(urlShortenerService.getOriginalUrl(eq(code)))
+                .thenThrow(new UrlNotFoundException());
 
-        mockMvc.perform(get("/api/{code}", code))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string("Code not found"));
+        mockMvc.perform(get("/api/" + code))
+                .andExpect(status().isBadRequest());
+
+        verify(urlShortenerService).getOriginalUrl(eq(code));
     }
 
     @Test
-    void testGetInfo_success() throws Exception {
+    void getInfo_existingCode_returns200() throws Exception {
         String code = "abc123";
-        String originalUrl = "https://example.com";
+        String originalUrl = "https://example.com/page";
 
-        Mockito.when(urlShortenerService.getOriginalUrl(code)).thenReturn(originalUrl);
+        when(urlShortenerService.getOriginalUrl(eq(code))).thenReturn(originalUrl);
 
-        mockMvc.perform(get("/api/info/{code}", code))
-                .andExpect(status().isOk())
-                .andExpect(content().string(originalUrl));
+        mockMvc.perform(get("/api/info/" + code))
+                .andExpect(status().isOk());
+
+        verify(urlShortenerService).getOriginalUrl(eq(code));
     }
 
     @Test
-    void testGetInfo_invalidCode() throws Exception {
-        String code = "abc123";
+    void getInfo_invalidCode_returns400() throws Exception {
+        String code = "doesnotexist";
 
-        Mockito.when(urlShortenerService.getOriginalUrl(code))
-                .thenThrow(new IllegalArgumentException("Code not found"));
+        when(urlShortenerService.getOriginalUrl(eq(code)))
+                .thenThrow(new UrlNotFoundException());
 
-        mockMvc.perform(get("/api/info/{code}", code))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string("Code not found"));
+        mockMvc.perform(get("/api/info/" + code))
+                .andExpect(status().isBadRequest());
+
+        verify(urlShortenerService).getOriginalUrl(eq(code));
     }
+
+
 }

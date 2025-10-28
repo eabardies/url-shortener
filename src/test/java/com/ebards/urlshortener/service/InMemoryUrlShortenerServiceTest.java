@@ -1,5 +1,7 @@
 package com.ebards.urlshortener.service;
 
+import com.ebards.urlshortener.dtos.ShortenUrlRequest;
+import com.ebards.urlshortener.exceptions.UrlNotFoundException;
 import com.ebards.urlshortener.model.UrlMapping;
 import com.ebards.urlshortener.repository.InMemoryUrlRepository;
 import com.ebards.urlshortener.repository.UrlRepository;
@@ -16,30 +18,25 @@ public class InMemoryUrlShortenerServiceTest {
     @BeforeEach
     void setUp(){
         urlRepository = mock(InMemoryUrlRepository.class);
-        inMemoryUrlShortenerService = new InMemoryUrlShortenerService(urlRepository);
+        inMemoryUrlShortenerService = new InMemoryUrlShortenerService("https://short.ly/", urlRepository);
     }
 
     @Test
     void shortenUrl_validUrl_returnsShortUrl() {
         String originalUrl = "https://example.com";
-        String shortUrl = inMemoryUrlShortenerService.shortenUrl(originalUrl);
+        var shortenUrlRequest = new ShortenUrlRequest();
+        shortenUrlRequest.setUrl(originalUrl);
+
+        var shortUrl = inMemoryUrlShortenerService.shortenUrl(shortenUrlRequest);
 
         assertNotNull(shortUrl);
-        assertTrue(shortUrl.startsWith("https://short.ly/"));
+        assertTrue(shortUrl.getShortenedUrl().startsWith("https://short.ly/"));
         verify(urlRepository, times(1)).save(any(UrlMapping.class));
     }
 
     @Test
-    void shortenUrl_invalidUrl_throwsException() {
-        String invalidUrl = "invalid-url";
-
-        assertThrows(IllegalArgumentException.class,
-                () -> inMemoryUrlShortenerService.shortenUrl(invalidUrl));
-    }
-
-    @Test
     void getOriginalUrl_existingCode_returnsOriginalUrl() {
-        UrlMapping mapping = new UrlMapping("abc123", "https://example.com");
+        UrlMapping mapping = new UrlMapping("abc123", "https://example.com", "abcd");
         when(urlRepository.findByCode("abc123")).thenReturn(mapping);
 
         String originalUrl = inMemoryUrlShortenerService.getOriginalUrl("abc123");
@@ -51,7 +48,7 @@ public class InMemoryUrlShortenerServiceTest {
     void getOriginalUrl_nonExistingCode_throwsException() {
         when(urlRepository.findByCode("missing")).thenReturn(null);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(UrlNotFoundException.class,
                 () -> inMemoryUrlShortenerService.getOriginalUrl("missing"));
     }
 }

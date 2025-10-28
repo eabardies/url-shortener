@@ -2,6 +2,4 @@ server:
   port: 8080
 
 app:
-  code-length: 7
-  shortener:
-    base-url: https://short.ly/
+  base-url: https://short.ly/

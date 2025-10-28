@@ -16,7 +16,7 @@ public class InMemoryUrlRepositoryTest {
 
     @Test
     void testSaveAndFindByCode_success() {
-        UrlMapping mapping = new UrlMapping("abc123", "https://example.com");
+        UrlMapping mapping = new UrlMapping("abc123", "https://example.com", "abcd");
 
         inMemoryUrlRepository.save(mapping);
         UrlMapping result = inMemoryUrlRepository.findByCode("abc123");
@@ -24,6 +24,7 @@ public class InMemoryUrlRepositoryTest {
         assertNotNull(result);
         assertEquals("abc123", result.getCode());
         assertEquals("https://example.com", result.getOriginalUrl());
+        assertEquals("abcd", result.getShortenedUrl());
     }
 
     @Test
@@ -35,8 +36,8 @@ public class InMemoryUrlRepositoryTest {
 
     @Test
     void testOverwriteMapping_sameCode() {
-        UrlMapping mapping1 = new UrlMapping("abc123", "https://example.com");
-        UrlMapping mapping2 = new UrlMapping("abc123", "https://another.com");
+        UrlMapping mapping1 = new UrlMapping("abc123", "https://example.com", "abcd");
+        UrlMapping mapping2 = new UrlMapping("abc123", "https://another.com", "abcd");
 
         inMemoryUrlRepository.save(mapping1);
         inMemoryUrlRepository.save(mapping2);

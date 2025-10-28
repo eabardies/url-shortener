@@ -1,64 +1,47 @@
 package com.ebards.urlshortener.controller;
 
+import com.ebards.urlshortener.dtos.ErrorDto;
+import com.ebards.urlshortener.dtos.OriginalUrlResponse;
+import com.ebards.urlshortener.dtos.ShortenUrlRequest;
+import com.ebards.urlshortener.exceptions.UrlNotFoundException;
 import com.ebards.urlshortener.service.UrlShortenerService;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api")
 public class UrlShortenerController {
 
     private final UrlShortenerService urlShortenerService;
 
-    public UrlShortenerController(UrlShortenerService urlShortenerService) {
-        this.urlShortenerService = urlShortenerService;
-    }
-
-    @PostMapping("/shorten")
-    public ResponseEntity<?> shortenUrl(@RequestBody String originalUrl) {
-        log.info("POST /api/shorten called with: {}", originalUrl);
-        try {
-            String shortUrl = urlShortenerService.shortenUrl(originalUrl);
-            log.info("Short URL: {}", shortUrl);
-            return ResponseEntity.ok(shortUrl);
-        } catch (IllegalArgumentException e) {
-            log.error(e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @PostMapping()
+    public ResponseEntity<?> shortenUrl(@Valid @RequestBody ShortenUrlRequest request) {
+        var urlMapping = urlShortenerService.shortenUrl(request);
+        return ResponseEntity.ok(urlMapping);
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<?> redirect(@PathVariable String code) {
-        log.info("GET /api/ called with code: {}", code);
-        try {
-            String originalUrl = urlShortenerService.getOriginalUrl(code);
-            log.info("Redirecting to URL {}", originalUrl);
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header("Location", originalUrl)
-                    .build();
-        } catch (IllegalArgumentException e) {
-            logCodeError(code);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<?> redirect(@PathVariable(name = "code") String code) {
+        String originalUrl = urlShortenerService.getOriginalUrl(code);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", originalUrl)
+                .build();
     }
 
     @GetMapping("info/{code}")
-    public ResponseEntity<?> getInfo(@PathVariable String code) {
-        log.info("GET /api/info/{} called", code);
-        try {
-            String originalUrl = urlShortenerService.getOriginalUrl(code);
-            log.info("Original URL found {}", originalUrl);
-            return ResponseEntity.ok(originalUrl);
-        } catch (IllegalArgumentException e) {
-            logCodeError(code);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<OriginalUrlResponse> getInfo(@PathVariable(name = "code") String code) {
+        var originalUrl = urlShortenerService.getOriginalUrl(code);
+        var test = urlShortenerService.getOriginalUrl(code);
+        return ResponseEntity.ok(new OriginalUrlResponse(originalUrl));
     }
 
-    private static void logCodeError(String code) {
-        log.error("Code {} does not exist.", code);
+    @ExceptionHandler(UrlNotFoundException.class)
+    public ResponseEntity<?> handleUrlNotFoundException(Exception e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorDto(e.getMessage()));
     }
 }
